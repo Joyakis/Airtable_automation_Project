@@ -1,0 +1,9 @@
+pyairtable
+python-dotenv
+requests
+pydantic
+pytest
+loguru
+google.generativeai
+tenacity
+pyYaml

@@ -1,0 +1,13 @@
+airtable:
+  api_key: ${AIRTABLE_API_KEY}
+  base_id: ${AIRTABLE_BASE_ID}
+  tables:
+    applicants: "Applicants"
+    personal: "Personal Details"
+    work: "Work Experience"
+    salary: "Salary Preferences"
+    shortlisted: "Shortlisted Leads"
+
+gemini:
+  api_key: ${GEMINI_API_KEY}
+  model: ${GEMINI_MODEL}
