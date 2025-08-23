@@ -67,12 +67,15 @@ Create a base named **Contractor Application** with tables:
   - Technologies (Single line text)
   - Applicant ID(Foreign Key)
 
+
+
 - **Salary Preferences**
-- Preferred Rate(Number)
-- Minimum Rate(Number)
-- Availability(Single line text)
-- Currency(Single select)
-- Applicant ID(Foreign Key)
+  
+  - Preferred Rate(Number)
+  - Minimum Rate(Number)
+  - Availability(Single line text)
+  - Currency(Single select)
+  - Applicant ID(Foreign Key)
     
 
 
