@@ -1,64 +1,206 @@
-# Airtable Contractor Applications Pipeline
+# Airtable Contractor Application Pipeline
 
-This repo provides a detailed guide for setting up and using the Airtable Contractor Application pipeline, which integrates Airtable data with Python scripts for automation, compresses multi-table records into a JSON blob, shortlists candidates based on rules, and enriches/evaluates data using an LLM (Gemini). The pipeline is containerized with Docker and includes a Makefile for easy setup.
+This project automates the contractor application process by integrating Airtable data with Python scripts. 
+It compresses applicant data into JSON blobs, shortlists candidates based on rules, and enriches evaluations using an LLM (Gemini). 
+The pipeline is containerized with Docker and includes a Makefile for easy setup.
 
-## Prerequisites
-Python 3.11 or higher (for local runs)
+---
 
-Docker (for containerized runs)
+## 🚀 Setup Steps
 
-Airtable account with an API key
+### Prerequisites
+- Python 3.8+ (for local runs)
+- Docker (for containerized runs)
+- Airtable account with API key
+- OpenAI or Gemini API key
+- Basic familiarity with CLI tools and YAML
 
-Gemini API key for LLM integration
+### 1. Clone the Repository
+```bash
+git clone git@github.com:Joyakis/Airtable_automation_Project.git
+cd Airtable_automation_Project
+```
 
-Basic familiarity with command-line tools and YAML configuration
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env` and update your credentials:
 
-## Quickstart
+```bash
+cp .env.example .env
+```
 
-1. Copy `.env.example` to `.env` and fill in your keys.
-2.  Create your Airtable base and tables matching config.yaml.
-3. Build and run with Docker:
-   ```bash
-   make build
-   make run
-   ```
-4. Or run locally:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
-   python src/run_pipeline.py
-   ```
+Example `.env`:
+```env
+AIRTABLE_API_KEY=your_airtable_api_key
+AIRTABLE_BASE_ID=your_airtable_base_id
+OPENAI_API_KEY=your_openai_api_key
+MODEL=gemini-1.5-flash
+```
 
-# Structure
+### 3. Airtable Schema
+Create a base named **Contractor Application** with tables:
 
-- `src/` - source modules and pipeline scripts
-- `config.yaml` - mapping for Airtable tables and LLM config
-- `Dockerfile`, `Makefile` - for containerized runs
-- `tests/` - basic unit tests
-  
- **SRC/**
-   >Data Fetching(src/airtable_utils.py)
+- **Applicants**
+  - Applicant ID (Formula)
+  - Personal Details (Long Text)
+  - Compressed JSON (Long text)
+  - LLM Score (Number)
+  - LLM Summary (Long text)
+  - Shortlist Status (Checkbox)
 
-   This module retrieves records from the Airtable tables (Applicants, Personal details,Work experience,salary preferences, Shortlist) using the Airtable API.
+- **Personal Details**
+  - Full Name (Single line text)
+  - Email (Email)
+  - Location (Single line text)
+  - LinkedIn (URL)
 
-   
-   ![Utilsimage](<img width="2049" height="1400" alt="image" src="https://github.com/user-attachments/assets/b691414b-bc04-4cc4-8307-56d9581f18dc" />
-)
+- **Shortlistlisted Leads**
+  - Applicant (Foreign Key)
+  - ScoreReason (Long Text)
+  - Shortlist ID (Formula)
+  - Compressed JSON(Long Text)
 
-   **Snippet**
-   * How it works:Connects to Airtable using the provided API key and base ID, retrieves all records from the    specified table, and returns them as a list of dictionaries
-   * Output:Raw Airtable records (e.g., [{"id": "rec123", "fields": {"Name": "John Doe", ...}}]).
- 
- 
- >Data Compression (src/compress.py)
+- **Work Experience**
+  - Company (Single line text)
+  - Title(Single line text)
+  - Start(Date)
+  - End(Date)
+  - Technologies (Single line text)
+  - Applicant ID(Foreign Key)
 
-  This module merges records from multiple tables into a single JSON blob per applicant, linking Applicants, Evaluations, and Shortlist data by Application ID.
+- **Salary Preferences**
+- Preferred Rate(Number)
+- Minimum Rate(Number)
+- Availability(Single line text)
+- Currency(Single select)
+- Applicant ID(Foreign Key)
+    
 
-  
- 
+
+### 4. Install Dependencies
+
+For local runs:
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+For Make runs:
+```bash
+make build
+```
+```bash
+make run
+```
+
+### 5. Run the Pipeline
+
+Local run:
+```bash
+python src/run_pipeline.py
+```
+
+Docker run:
+```bash
+docker build -t airtable-pipeline .
+
+```
+```bash
+docker run --env-file .env airtable-pipeline
+```
 
 
+---
 
+## ⚙️ How It Works
 
+### 1. Data Fetching (`src/airtable_utils.py`)
+Connects to Airtable and retrieves records.
 
+```python
+from pyairtable import Table
+
+def fetch_records(table_name):
+    table = Table(AIRTABLE_API_KEY, AIRTABLE_BASE_ID, table_name)
+    return table.all()
+```
+
+### 2. Data Compression (`src/compress.py`)
+Merges related records into a single JSON blob.
+
+```python
+def build_compressed_json(applicants, details, shortlist):
+    return [
+        {"application": app, "details": details_map.get(app["id"], []), "shortlist": shortlist_map.get(app["id"], [])}
+        for app in applicants
+    ]
+```
+
+### 3. Data Decompression (`src/decompress.py`)
+Splits JSON back into Airtable tables.
+
+```bash
+python src/decompress.py <applicant_id>
+```
+
+### 4. Shortlisting (`src/shortlist.py`)
+Evaluates applicants based on rules.
+
+```python
+criteria = {
+    "min_experience": 5,
+    "required_skills": ["Python", "SQL"]
+}
+```
+
+Run:
+```bash
+python src/shortlist.py <applicant_id>
+```
+
+### 5. LLM Evaluation (`src/llm.py`)
+Uses OpenAI/Gemini to score applicants.
+
+```bash
+python src/llm.py <applicant_id>
+```
+
+---
+
+## 🔒 Security
+- API keys stored in `.env`
+- `.gitignore` prevents key leaks
+- Docker ensures isolation
+- Only necessary applicant fields are shared with LLM
+
+---
+
+## 🛠️ Customization
+Extend `src/shortlist.py` to add new rules. Example:
+
+```python
+criteria = {
+    "min_experience": 5,
+    "required_skills": ["Python", "SQL"],
+    "min_score": 80
+}
+```
+
+Move rules into `config.yaml` for dynamic updates.
+
+---
+
+## ✅ Testing
+
+Run unit tests:
+```bash
+python -m unittest discover tests
+```
+
+---
+
+## 📌 Conclusion
+This pipeline automates contractor applications with Airtable + Python, 
+enhanced by LLM evaluation. Secure, modular, and customizable.
+
+📂 Repository: [Airtable Automation Project](https://github.com/Joyakis/Airtable_automation_Project)
